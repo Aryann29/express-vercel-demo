@@ -17,23 +17,29 @@ app.use(express.json());
 
 
 app.post('/register', async (req, res) => {
-    const { username } = req.body;
-  
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
-    }
-  
-    try {  
-      const existingUser = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  const { username } = req.body;
 
+  if (!username) {
+    return res.status(400).json({ error: 'Username is required' });
+  }
+
+  try {
+    const existingUser = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+
+    if (existingUser.rows.length === 0) {
+     
       await pool.query('INSERT INTO users (username) VALUES ($1)', [username]);
-  
-      res.json({ message: 'User registered successfully' });
-    } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(201).json({ message: 'User created and logged in successfully' });
+    } else {
+      
+      res.status(200).json({ message: 'User logged in successfully' });
     }
-  });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
   app.post('/api/like', async (req, res) => {
     const { username, movieId } = req.body;
