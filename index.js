@@ -1,7 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 require('dotenv').config();
-
+const cors = require('cors'); 
 const app = express();
 const port = process.env.PORT || 5005;
 
@@ -15,6 +15,7 @@ const pool = new Pool({
 
 app.use(express.json());
 
+app.use(cors());
 
 app.post('/register', async (req, res) => {
     const { username } = req.body;
