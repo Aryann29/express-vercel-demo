@@ -14,7 +14,7 @@ const pool = new Pool({
 });
 
 app.use(express.json());
-
+app.use(cors()); 
 
 app.post('/register', async (req, res) => {
   const { username } = req.body;
