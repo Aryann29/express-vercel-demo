@@ -25,10 +25,6 @@ app.post('/register', async (req, res) => {
   
     try {  
       const existingUser = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-  
-      if (existingUser.rows.length > 0) {
-        return res.status(409).json({ error: 'Username already exists' });
-      }
 
       await pool.query('INSERT INTO users (username) VALUES ($1)', [username]);
   
@@ -41,60 +37,25 @@ app.post('/register', async (req, res) => {
 
   app.post('/api/like', async (req, res) => {
     const { username, movieId } = req.body;
-  
-    if (!username || !movieId) {
-      return res.status(400).json({ error: 'User ID and Movie ID are required' });
-    }
-  
-    try {
-    
-      const existingLike = await pool.query('SELECT * FROM liked_movies WHERE username = $1 AND movie_id = $2', [username, movieId]);
-  
-      if (existingLike.rows.length > 0) {
-        return res.status(409).json({ error: 'Movie is already liked by the user' });
-      }
-  
-   
-      await pool.query('INSERT INTO liked_movies (username, movie_id) VALUES ($1, $2)', [username, movieId]);
-  
-      res.json({ message: 'Movie liked successfully' });
-    } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
 
-  
-  app.post('/api/unlike', async (req, res) => {
-    const { username, movieId } = req.body;
-  
-    if (!username || !movieId) {
-      return res.status(400).json({ error: 'Username and Movie ID are required' });
-    }
-  
     try {
+        const existingLike = await pool.query('SELECT * FROM liked_movies WHERE username = $1 AND movie_id = $2', [username, movieId]);
 
-      const existingLike = await pool.query(
-        'SELECT * FROM liked_movies WHERE username = (SELECT username FROM users WHERE username = $1) AND movie_id = $2',
-        [username, movieId]
-      );
-  
-      if (existingLike.rows.length === 0) {
-        return res.status(404).json({ error: 'Movie is not liked by the user' });
-      }
-  
-     
-      await pool.query(
-        'DELETE FROM liked_movies WHERE username = (SELECT username FROM users WHERE username = $1) AND movie_id = $2',
-        [username, movieId]
-      );
-  
-      res.json({ message: 'Movie unliked successfully' });
+        if (existingLike.rows.length > 0) {
+           
+            await pool.query('DELETE FROM liked_movies WHERE username = $1 AND movie_id = $2', [username, movieId]);
+            res.json({ message: 'Movie unliked successfully' });
+        } else {
+           
+            await pool.query('INSERT INTO liked_movies (username, movie_id) VALUES ($1, $2)', [username, movieId]);
+            res.json({ message: 'Movie liked successfully' });
+        }
     } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+        console.error('Database error:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-  });
+});
+
 
 app.get('/api/liked-movies/:username', async (req, res) => {
     const username = req.params.username;
@@ -119,61 +80,27 @@ app.get('/api/liked-movies/:username', async (req, res) => {
     }
   });
   
-
   app.post('/api/watchlist', async (req, res) => {
     const { username, movieId } = req.body;
-   
-    if (!username || !movieId) {
-      return res.status(400).json({ error: 'User ID and Movie ID are required' });
-    }
-  
-    try {
-   
-      const existingLike = await pool.query('SELECT * FROM watchlist_movies WHERE username = $1 AND movie_id = $2', [username, movieId]);
-  
-      if (existingLike.rows.length > 0) {
-        return res.status(409).json({ error: 'Movie is already watchlist by the user' });
-      }
-  
-      await pool.query('INSERT INTO watchlist_movies (username, movie_id) VALUES ($1, $2)', [username, movieId]);
-  
-      res.json({ message: 'Movie watchlist successfully' });
-    } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
 
-  app.post('/api/unwatchlist', async (req, res) => {
-    const { username, movieId } = req.body;
-  
-    if (!username || !movieId) {
-      return res.status(400).json({ error: 'Username and Movie ID are required' });
-    }
-  
     try {
-      
-      const existingLike = await pool.query(
-        'SELECT * FROM watchlist_movies WHERE username = (SELECT username FROM users WHERE username = $1) AND movie_id = $2',
-        [username, movieId]
-      );
-  
-      if (existingLike.rows.length === 0) {
-        return res.status(404).json({ error: 'Movie is not liked by the user' });
-      }
-  
+        const existingWatchlistItem = await pool.query('SELECT * FROM watchlist_movies WHERE username = $1 AND movie_id = $2', [username, movieId]);
 
-      await pool.query(
-        'DELETE FROM watchlist_movies WHERE username = (SELECT username FROM users WHERE username = $1) AND movie_id = $2',
-        [username, movieId]
-      );
-  
-      res.json({ message: 'Movie unliked successfully' });
+        if (existingWatchlistItem.rows.length > 0) {
+            // If the movie is already in the watchlist, remove it
+            await pool.query('DELETE FROM watchlist_movies WHERE username = $1 AND movie_id = $2', [username, movieId]);
+            res.json({ message: 'Movie removed from the watchlist successfully' });
+        } else {
+            // If the movie is not in the watchlist, add it
+            await pool.query('INSERT INTO watchlist_movies (username, movie_id) VALUES ($1, $2)', [username, movieId]);
+            res.json({ message: 'Movie added to the watchlist successfully' });
+        }
     } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+        console.error('Database error:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-  });
+});
+
 
   app.get('/api/watchlist-movies/:username', async (req, res) => {
     const username = req.params.username;
